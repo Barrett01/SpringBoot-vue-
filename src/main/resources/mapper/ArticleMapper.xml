@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xm.mapper.ArticleMapper">
+
+<!--    <select id="getGoods" parameterType="String" resultMap="GoodsResultMap">-->
+<!--               select * from t_article a, t_goods g where g.id=a.goodsid-->
+<!--    </select>-->
+    <resultMap id="articleWithComment" type="Article">
+        <id column="id" property="id" />
+        <result column="goodsid" property="goodsid"/>
+        <result column="title" property="title" />
+        <result column="content" property="content" />
+        <result column="created" property="created" />
+        <result column="thumbnail" property="thumbnail" />
+        <result column="hits" property="hits" />
+        <result column="comments" property="comments" />
+
+
+        <association property="goods" javaType="Goods">
+            <id property="id" column="goodsid"/>
+            <result property="name" column="name"/>
+            <result property="thumbnail" column="thumbnail"/>
+            <result property="price" column="price"/>
+        </association>
+
+        <collection ofType="Comment" property="commentList">
+            <id column="c_id" property="id" />
+            <result column="c_content" property="content" />
+            <result column="c_created" property="created" />
+            <result column="author" property="author" />
+        </collection>
+
+    </resultMap>
+
+    <!-- 查询所有新闻列表 按发布时间排序-->
+    <select id="selectArticlesOrderByDate" resultType="Article">
+        select id,title,created,thumbnail,hits,comments from t_article order by id desc 
+    </select>
+    
+    <!-- 查询所有新闻 按点击量、评论数量排序-->
+    <select id="selectArticlesOrderByHits" resultType="Article">
+        select id,title,created,thumbnail,hits,comments from t_article order by hits desc,comments desc  limit 0,9
+    </select>
+
+    <!-- 根据id查询 新闻详情 附带该文章所有评论 -->
+    <select id="selectArticleById" parameterType="Integer" resultMap="articleWithComment">
+        select a.*,c.id c_id,c.content c_content,c.created c_created,c.author from t_article a left join t_comment c on a.id=c.articleid where a.id=#{id} order by c_id desc
+    </select>
+
+    <!-- 根据id查询 新闻详情 附带该文章对应的商品 -->
+    <select id="selectArticleGoodsById" parameterType="Integer" resultMap="articleWithComment">
+        select a.*,g.*,c.id c_id,c.content c_content,c.created c_created,c.author from t_article a left join t_comment c on a.id=c.articleid,t_goods g where g.id=a.goodsid and a.id=#{id} order by c_id desc
+    </select>
+
+    <!-- 查询所有新闻标题列表及附带的所有评论 供管理员使用-->
+    <select id="selectTitlesWithComment" resultMap="articleWithComment">
+        select a.id,a.title,c.id c_id,c.content c_content,c.created c_created,c.author from t_article a,t_comment c where a.id=c.articleid 
+    </select>
+
+    <!-- 发布一个新闻 -->
+    <insert id="insertArticle" keyColumn="id" keyProperty="id" parameterType="Article" useGeneratedKeys="true">
+        insert into t_article (title,content,thumbnail) values(#{title},#{content},#{thumbnail})
+    </insert>
+
+    <!-- 修改新闻 -->
+    <update id="updateArticle" parameterType="Article">
+        update t_article
+        <set>
+            <if test="title != null and title != '' ">
+                title=#{title},
+            </if>
+            <if test="content != null and content != '' ">
+                content=#{content},
+            </if>
+            <if test="thumbnail != null and thumbnail != '' ">
+                thumbnail=#{thumbnail}
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <!-- 删除新闻 -->
+    <delete id="deleteArticleById" parameterType="Integer">
+        delete  from t_article where id=#{id}
+    </delete>
+    
+    <!-- 增加点击量 -->
+    <update id="updateArticleHitsById" parameterType="Integer">
+        update t_article set hits=hits+1 where id=#{id}
+    </update>
+    
+    <!-- 增加评论量 -->
+    <update id="updateArticleCommentsById" parameterType="Integer">
+        update t_article set comments=comments+1 where id=#{id}
+    </update>    
+    
+</mapper>
